@@ -127,12 +127,9 @@ def main(name, vocabulary, init, text, calc, embed):
         f.seek(0)
         for line in f:
             if (embed):
-                print(line)
                 s = (ev.get_embedding(line))
-                print (s.shape)
-                print (np.sum(ev.get_embedding(line)[0,:,:]))
-                print (np.sum(ev.get_embedding(line)[-1,:,:]))
-                print (" ".join(map(str,ev.get_embedding(line)[1,:,:].flatten().tolist())))
+                s_arr = map(str, s[1,:,:].flatten().tolist()) # convert numpy array to list and convert float to string
+                print (line.rstrip() + " " + " ".join(s_arr))
             else:
                 lprob, nwords = ev.logprob(line)
                 lp += lprob*nwords
