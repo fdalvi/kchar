@@ -73,13 +73,12 @@ class evaluator:
         self.opt.batch_size = 1
         self.opt.seq_length = 1
         self.reader = Vocabulary(self.opt.tokens, vocabulary, max_word_l=self.opt.max_word_l)
-        
-        if embed:
-            self.model = LSTMCNN_print(self.opt)
-        else:
-            self.model = LSTMCNN(self.opt)
-        
-        self.model.load_weights('{}.h5'.format(name))
+	if embed:
+	        self.model = LSTMCNN_print(self.opt)
+                self.model.load_weights('{}.h5'.format(name), by_name=True)
+	else:
+		self.model = LSTMCNN(self.opt)
+        	self.model.load_weights('{}.h5'.format(name))
         if init:
             self.state_mean = np.load(init)
         else:
@@ -94,16 +93,20 @@ class evaluator:
 
     def get_embedding(self, line):
         x, y = self.reader.get_input(line)
-        nwords = len(y)
         if self.state_mean is not None:
             self.model.set_states_value(self.state_mean)
         return self.model.predict(x, batch_size=1, verbose=0)
 
 def main(name, vocabulary, init, text, calc, embed):
     
-    ev = evaluator(name, vocabulary, None if calc else init)
+    ev = evaluator(name, vocabulary, None if calc else init, embed)
     
+    if embed: 
+	em = codecs.open('embedding', 'w', encoding='utf-8')
+ 
     f = codecs.open(text, 'r', encoding)
+    num_lines = sum(1 for line in f)
+    f.seek(0)
     if calc:
         lp = 0;
         nw = 0;
@@ -125,18 +128,30 @@ def main(name, vocabulary, init, text, calc, embed):
         nw = 0;
         nl = 0;
         f.seek(0)
+	count = 0
+	emb_size = 0
         for line in f:
-            if (embed):
-                s = (ev.get_embedding(line))
-                s_arr = map(str, s[1,:,:].flatten().tolist()) # convert numpy array to list and convert float to string
-                print (line.rstrip() + " " + " ".join(s_arr))
-            else:
-                lprob, nwords = ev.logprob(line)
-                lp += lprob*nwords
-                nw += nwords
-                nl += 1
-                print "Perplexity = ", exp(lp/nw), "\t(", nl, ")"
-        
+	    if (embed):
+		wrd = line.split()[0] # get first word in a sentence in case there are more than one word on one line
+            	s = (ev.get_embedding(wrd))
+		if count == 0:
+			emb_size = (s.shape)[2] # embedding size
+			em.write(str(num_lines) + " " + str(emb_size) + "\n")	# writing num of lines and embeddigns size
+			# to make format of file compatibale with word2vec embeddings
+	
+		s_arr = map(str, s[1,:,:].flatten().tolist()) # convert numpy array to list and convert float to string
+		# taking the embedding of the first word only in case the input consists of more than one word per line
+		em.write(wrd + " " + " ".join(s_arr) + "\n")
+		count +=1
+	    else:
+            	lprob, nwords = ev.logprob(line)
+            	lp += lprob*nwords
+            	nw += nwords
+            	nl += 1
+            	print "Perplexity = ", exp(lp/nw), "\t(", nl, ")"
+	if embed:
+		print "Embedding file written to the working directory"
+        	em.close()
     exit(0)
 
 if __name__ == "__main__":
@@ -150,4 +165,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    main(args.model, args.vocabulary, args.init, args.text, args.calc)
+    main(args.model, args.vocabulary, args.init, args.text, args.calc, args.embed)

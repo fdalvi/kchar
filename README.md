@@ -49,6 +49,7 @@ python evaluate.py --model cv/char-large --vocabulary data/ptb/vocab.npz --init 
 ```
 
 Print word Embedding using a trained model (this option is implemented without init and calc flag)
+Test.txt assume one word per line. If there is a sentence, it will only output the embedding of the first word
 ```
 python evaluate.py --model cv/char-large --vocabulary data/ptb/vocab.npz --text data/ptb/test.txt --embed 1
 ```
