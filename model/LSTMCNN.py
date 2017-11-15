@@ -198,6 +198,36 @@ def CNN(seq_length, length, input_size, feature_maps, kernels, x):
     x = Reshape((seq_length, sum(feature_maps)))(x)
     return x
 
+def LSTMCNN_print(opt):
+    # function return word embeddings learned from CNN
+    # model is limited to CNN
+    
+    if opt.use_words:
+        word = Input(batch_shape=(opt.batch_size, opt.seq_length), dtype='int32', name='word')
+        word_vecs = Embedding(opt.word_vocab_size, opt.word_vec_size, input_length=opt.seq_length)(word)
+
+    if opt.use_chars:
+        chars = Input(batch_shape=(opt.batch_size, opt.seq_length, opt.max_word_l), dtype='int32', name='chars')
+        chars_embedding = TimeDistributed(Embedding(opt.char_vocab_size, opt.char_vec_size, name='chars_embedding'))(chars)
+        cnn = CNN(opt.seq_length, opt.max_word_l, opt.char_vec_size, opt.feature_maps, opt.kernels, chars_embedding)
+        if opt.use_words:
+            x = Concatenate()([cnn, word_vecs])
+            inputs = [chars, word]
+        else:
+            x = cnn
+            inputs = chars
+    else:
+        x = word_vecs
+        inputs = word
+
+    output = x
+    model = sModel(inputs=inputs, outputs=output)
+
+    optimizer = sSGD(lr=opt.learning_rate, clipnorm=opt.max_grad_norm, scale=float(opt.seq_length))
+    model.compile(loss='sparse_categorical_crossentropy', optimizer=optimizer)
+    return model
+
+
 def LSTMCNN(opt):
     # opt.seq_length = number of time steps (words) in each batch
     # opt.rnn_size = dimensionality of hidden layers
