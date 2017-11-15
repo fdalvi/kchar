@@ -48,6 +48,10 @@ For this later case, we can evaluate the perplexity using a precomputed --init f
 python evaluate.py --model cv/char-large --vocabulary data/ptb/vocab.npz --init init.npy --text data/ptb/test.txt
 ```
 
+Print word Embedding using a trained model (this option is implemented without init and calc flag)
+```
+python evaluate.py --model cv/char-large --vocabulary data/ptb/vocab.npz --text data/ptb/test.txt --embed 1
+```
 ### Licence
 MIT
 
