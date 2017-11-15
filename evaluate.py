@@ -4,6 +4,7 @@ import re
 import argparse
 import cPickle as pickle
 from model.LSTMCNN import LSTMCNN
+from model.LSTMCNN import LSTMCNN_print
 from util.BatchLoaderUnk import Tokens, encoding # needed by pickle.load()
 from math import exp
 
