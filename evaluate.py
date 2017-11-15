@@ -68,12 +68,17 @@ class Vocabulary:
 
 
 class evaluator:
-    def __init__(self, name, vocabulary, init):
+    def __init__(self, name, vocabulary, init, embed):
         self.opt = pickle.load(open('{}.pkl'.format(name), "rb"))
         self.opt.batch_size = 1
         self.opt.seq_length = 1
         self.reader = Vocabulary(self.opt.tokens, vocabulary, max_word_l=self.opt.max_word_l)
-        self.model = LSTMCNN(self.opt)
+        
+        if embed:
+            self.model = LSTMCNN_print(self.opt)
+        else:
+            self.model = LSTMCNN(self.opt)
+        
         self.model.load_weights('{}.h5'.format(name))
         if init:
             self.state_mean = np.load(init)
@@ -87,7 +92,14 @@ class evaluator:
             self.model.set_states_value(self.state_mean)
         return self.model.evaluate(x, y, batch_size=1, verbose=0), nwords
 
-def main(name, vocabulary, init, text, calc):
+    def get_embedding(self, line):
+        x, y = self.reader.get_input(line)
+        nwords = len(y)
+        if self.state_mean is not None:
+            self.model.set_states_value(self.state_mean)
+        return self.model.predict(x, batch_size=1, verbose=0)
+
+def main(name, vocabulary, init, text, calc, embed):
     
     ev = evaluator(name, vocabulary, None if calc else init)
     
@@ -114,11 +126,19 @@ def main(name, vocabulary, init, text, calc):
         nl = 0;
         f.seek(0)
         for line in f:
-            lprob, nwords = ev.logprob(line)
-            lp += lprob*nwords
-            nw += nwords
-            nl += 1
-            print "Perplexity = ", exp(lp/nw), "\t(", nl, ")"
+            if (embed):
+                print(line)
+                s = (ev.get_embedding(line))
+                print (s.shape)
+                print (np.sum(ev.get_embedding(line)[0,:,:]))
+                print (np.sum(ev.get_embedding(line)[-1,:,:]))
+                print (" ".join(map(str,ev.get_embedding(line)[1,:,:].flatten().tolist())))
+            else:
+                lprob, nwords = ev.logprob(line)
+                lp += lprob*nwords
+                nw += nwords
+                nl += 1
+                print "Perplexity = ", exp(lp/nw), "\t(", nl, ")"
         
     exit(0)
 
@@ -129,6 +149,7 @@ if __name__ == "__main__":
     parser.add_argument('--init', type=str)
     parser.add_argument('--text', type=str)
     parser.add_argument('--calc', action='store_true', default=False)
+    parser.add_argument('--embed', default=False)
 
     args = parser.parse_args()
 
