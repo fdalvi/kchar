@@ -16,8 +16,11 @@ def loadModel(vecFile, vecFormat):
 
 
 def find_similar_words(word):
-	return word_vectors.most_similar(word, topn=10)
-	
+	if word in word_vectors.vocab:
+		return word_vectors.most_similar(word, topn=10)
+	else:
+		return None
+
 
 def word_file_process(word_file, out_file):
 	out = codecs.open(out_file, 'w', 'utf-8')
@@ -48,7 +51,9 @@ if __name__ == "__main__":
 			word = raw_input("Enter a word to find its nearest neighbours:  Press 0 to EXIT ")
 			if word == "0": break
 			sim_words = find_similar_words(word)
+			if sim_words == None: print "Word not in vocabulary"; continue;
 			for i,j in sim_words:
 				print i,j
+				
 
 
