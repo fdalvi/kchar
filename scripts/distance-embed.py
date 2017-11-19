@@ -27,6 +27,7 @@ def word_file_process(word_file, out_file):
 	with codecs.open(word_file, 'r', 'utf-8') as f:
 		for word in f:
 			sim_words = find_similar_words(word.rstrip())
+			if sim_words == None: out.write(word + "\t" + "WORD_NOT_IN_VOCAB"); continue;
 			out.write(word + "\t" + ''.join(map(str,sim_words)))
 	f.close()
 	out.close()
@@ -48,7 +49,7 @@ if __name__ == "__main__":
 		word_file_process(word_file, out_file)
 	else:
 		while True:
-			word = raw_input("Enter a word to find its nearest neighbours:  Press 0 to EXIT ")
+			word = raw_input("Enter a word to find its nearest neighbours:  Press 0 to EXIT ").decode("utf-8")
 			if word == "0": break
 			sim_words = find_similar_words(word)
 			if sim_words == None: print "Word not in vocabulary"; continue;
