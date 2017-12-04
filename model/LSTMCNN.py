@@ -217,10 +217,7 @@ def LSTMCNN_print(opt, extract):
         x = word_vecs
         inputs = word
 
-    output = x
-    if extract == 'embedding':
-	model = sModel(inputs=inputs, outputs=output)
-    elif extract == 'highway':
+    if extract == 'highway':
 
 	    if opt.batch_norm:
         	 x = BatchNormalization()(x)
@@ -228,9 +225,8 @@ def LSTMCNN_print(opt, extract):
 	    for l in range(opt.highway_layers):
         	 x = TimeDistributed(Highway(activation='relu'))(x)
 
-	    output = x
-
-    	    model = sModel(inputs=inputs, outputs=output)
+    output = x
+    model = sModel(inputs=inputs, outputs=output)
 
     optimizer = sSGD(lr=opt.learning_rate, clipnorm=opt.max_grad_norm, scale=float(opt.seq_length))
     model.compile(loss='sparse_categorical_crossentropy', optimizer=optimizer)
