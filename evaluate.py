@@ -132,14 +132,15 @@ def main(name, vocabulary, init, text, calc, embed):
 	emb_size = 0
         for line in f:
 	    if (embed):
-		wrd = line.split()[0] # get first word in a sentence in case there are more than one word on one line
+		assert len(line.split()) == 1, "number of words per line are greater than 1: %s" % line
+		wrd = line.split()[0] 
             	s = (ev.get_embedding(wrd))
 		if count == 0:
 			emb_size = (s.shape)[2] # embedding size
 			em.write(str(num_lines) + " " + str(emb_size) + "\n")	# writing num of lines and embeddigns size
 			# to make format of file compatibale with word2vec embeddings
 	
-		s_arr = map(str, s[1,:,:].flatten().tolist()) # convert numpy array to list and convert float to string
+		s_arr = map(str, s[-1,:,:].flatten().tolist()) # convert numpy array to list and convert float to string
 		# taking the embedding of the first word only in case the input consists of more than one word per line
 		em.write(wrd + " " + " ".join(s_arr) + "\n")
 		count +=1
