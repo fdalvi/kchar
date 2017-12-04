@@ -198,10 +198,7 @@ def CNN(seq_length, length, input_size, feature_maps, kernels, x):
     x = Reshape((seq_length, sum(feature_maps)))(x)
     return x
 
-def LSTMCNN_print(opt):
-    # function return word embeddings learned from CNN
-    # model is limited to CNN
-    
+def LSTMCNN_print(opt, extract):
     if opt.use_words:
         word = Input(batch_shape=(opt.batch_size, opt.seq_length), dtype='int32', name='word')
         word_vecs = Embedding(opt.word_vocab_size, opt.word_vec_size, input_length=opt.seq_length)(word)
@@ -221,12 +218,23 @@ def LSTMCNN_print(opt):
         inputs = word
 
     output = x
-    model = sModel(inputs=inputs, outputs=output)
+    if extract == 'embedding':
+	model = sModel(inputs=inputs, outputs=output)
+    elif extract == 'highway':
+
+	    if opt.batch_norm:
+        	 x = BatchNormalization()(x)
+
+	    for l in range(opt.highway_layers):
+        	 x = TimeDistributed(Highway(activation='relu'))(x)
+
+	    output = x
+
+    	    model = sModel(inputs=inputs, outputs=output)
 
     optimizer = sSGD(lr=opt.learning_rate, clipnorm=opt.max_grad_norm, scale=float(opt.seq_length))
     model.compile(loss='sparse_categorical_crossentropy', optimizer=optimizer)
     return model
-
 
 def LSTMCNN(opt):
     # opt.seq_length = number of time steps (words) in each batch
@@ -263,17 +271,22 @@ def LSTMCNN(opt):
         x = word_vecs
         inputs = word
 
+    output = x
+
     if opt.batch_norm:
-        x = BatchNormalization()(x)
+         x = BatchNormalization()(x)
 
     for l in range(opt.highway_layers):
-        x = TimeDistributed(Highway(activation='relu'))(x)
+         x = TimeDistributed(Highway(activation='relu'))(x)
+
+    output = x
 
     for l in range(opt.num_layers):
-        x = LSTM(opt.rnn_size, activation='tanh', recurrent_activation='sigmoid', return_sequences=True, stateful=True)(x)
+         x = LSTM(opt.rnn_size, activation='tanh', recurrent_activation='sigmoid', return_sequences=True, stateful=True)(x)
 
-        if opt.dropout > 0:
-            x = Dropout(opt.dropout)(x)
+         if opt.dropout > 0:
+             x = Dropout(opt.dropout)(x)
+    
 
     output = TimeDistributed(Dense(opt.word_vocab_size, activation='softmax'))(x)
 

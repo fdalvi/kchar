@@ -48,10 +48,12 @@ For this later case, we can evaluate the perplexity using a precomputed --init f
 python evaluate.py --model cv/char-large --vocabulary data/ptb/vocab.npz --init init.npy --text data/ptb/test.txt
 ```
 
-Print word Embedding using a trained model (this option is implemented without init and calc flag)
-Test.txt assume one word per line. If there is a sentence, it gives an error.
+Print word Embeddings or output of highway layer  using a trained model (this option is implemented without init and calc flag)
+
+test.txt assume one word per line. If there is a sentence, program exits with an error.
 ```
-python evaluate.py --model cv/char-large --vocabulary data/ptb/vocab.npz --text data/ptb/test.txt --embed 1
+python evaluate.py --model cv/char-large --vocabulary data/ptb/vocab.npz --text data/ptb/test.txt --extract embedding
+python evaluate.py --model cv/char-large --vocabulary data/ptb/vocab.npz --text data/ptb/test.txt --extract highway
 ```
 ### Licence
 MIT

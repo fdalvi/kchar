@@ -68,17 +68,17 @@ class Vocabulary:
 
 
 class evaluator:
-    def __init__(self, name, vocabulary, init, embed):
+    def __init__(self, name, vocabulary, init, extract):
         self.opt = pickle.load(open('{}.pkl'.format(name), "rb"))
         self.opt.batch_size = 1
         self.opt.seq_length = 1
         self.reader = Vocabulary(self.opt.tokens, vocabulary, max_word_l=self.opt.max_word_l)
-	if embed:
-	        self.model = LSTMCNN_print(self.opt)
-                self.model.load_weights('{}.h5'.format(name), by_name=True)
+	if extract:
+	        self.model = LSTMCNN_print(self.opt, extract)
+		self.model.load_weights('{}.h5'.format(name), by_name=True)
 	else:
 		self.model = LSTMCNN(self.opt)
-        	self.model.load_weights('{}.h5'.format(name))
+	        self.model.load_weights('{}.h5'.format(name))
         if init:
             self.state_mean = np.load(init)
         else:
@@ -97,12 +97,12 @@ class evaluator:
             self.model.set_states_value(self.state_mean)
         return self.model.predict(x, batch_size=1, verbose=0)
 
-def main(name, vocabulary, init, text, calc, embed):
+def main(name, vocabulary, init, text, calc, extract):
     
-    ev = evaluator(name, vocabulary, None if calc else init, embed)
+    ev = evaluator(name, vocabulary, None if calc else init, extract)
     
-    if embed: 
-	em = codecs.open('embedding', 'w', encoding='utf-8')
+    if extract: 
+	em = codecs.open(extract + '_output', 'w', encoding='utf-8')
  
     f = codecs.open(text, 'r', encoding)
     num_lines = sum(1 for line in f)
@@ -131,18 +131,17 @@ def main(name, vocabulary, init, text, calc, embed):
 	count = 0
 	emb_size = 0
         for line in f:
-	    if (embed):
+	    if (extract):
 		assert len(line.split()) == 1, "number of words per line are greater than 1: %s" % line
-		wrd = line.split()[0] 
-            	s = (ev.get_embedding(wrd))
+		word = line.split()[0]
+            	s = (ev.get_embedding(word))
 		if count == 0:
 			emb_size = (s.shape)[2] # embedding size
 			em.write(str(num_lines) + " " + str(emb_size) + "\n")	# writing num of lines and embeddigns size
 			# to make format of file compatibale with word2vec embeddings
-	
 		s_arr = map(str, s[-1,:,:].flatten().tolist()) # convert numpy array to list and convert float to string
 		# taking the embedding of the first word only in case the input consists of more than one word per line
-		em.write(wrd + " " + " ".join(s_arr) + "\n")
+		em.write(word + " " + " ".join(s_arr) + "\n")
 		count +=1
 	    else:
             	lprob, nwords = ev.logprob(line)
@@ -150,8 +149,8 @@ def main(name, vocabulary, init, text, calc, embed):
             	nw += nwords
             	nl += 1
             	print "Perplexity = ", exp(lp/nw), "\t(", nl, ")"
-	if embed:
-		print "Embedding file written to the working directory"
+	if extract:
+		print "%s file written to the working directory" % (extract + "_output")
         	em.close()
     exit(0)
 
@@ -162,8 +161,7 @@ if __name__ == "__main__":
     parser.add_argument('--init', type=str)
     parser.add_argument('--text', type=str)
     parser.add_argument('--calc', action='store_true', default=False)
-    parser.add_argument('--embed', default=False)
-
+    parser.add_argument('--extract', choices=['embedding', 'highway'])
     args = parser.parse_args()
 
-    main(args.model, args.vocabulary, args.init, args.text, args.calc, args.embed)
+    main(args.model, args.vocabulary, args.init, args.text, args.calc, args.extract)
