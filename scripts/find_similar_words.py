@@ -60,13 +60,6 @@ if __name__ == "__main__":
 		word_file_process(word_file, out_file)
 	else:
 		word_process()
-		while True:
-			word = raw_input("Enter a word to find its nearest neighbours:  Press 0 to EXIT ").decode("utf-8")
-			if word == "0": break
-			sim_words = find_similar_words(word)
-			if sim_words == None: print "Word not in vocabulary"; continue;
-			for i,j in sim_words:
-				print i,j
 				
 
 
