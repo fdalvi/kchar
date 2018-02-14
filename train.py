@@ -49,6 +49,7 @@ if __name__=="__main__":
     parser.add_argument('--use_words', type=int, default=0, help='use words (1=yes)')
     parser.add_argument('--use_chars', type=int, default=1, help='use characters (1=yes)')
     parser.add_argument('--highway_layers', type=int, default=2, help='number of highway layers')
+    parser.add_argument('--feedforward_layers', type=int, default=0, help='number of feedforward layers applied after highway layer')
     parser.add_argument('--word_vec_size', type=int, default=650, help='dimensionality of word embeddings')
     parser.add_argument('--char_vec_size', type=int, default=15, help='dimensionality of character embeddings')
     parser.add_argument('--feature_maps', type=int, nargs='+', default=[50,100,150,200,200,200,200], help='number of feature maps in the CNN')

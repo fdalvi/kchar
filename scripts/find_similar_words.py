@@ -46,9 +46,23 @@ def word_process():
 	return
 
 if __name__ == "__main__":
+
+	parser = argparse.ArgumentParser(description='Load word embeddings and find similar words given a file')
+
+    parser.add_argument('--embedding', type=str, help='Word embedding file')
+    parser.add_argument('--type', type=str, default='text', help='Word embedding format, text or binary')
+    parser.add_argument('--nbest', type=int, help='number of nearest words')
+    parser.add_argument('--load_model', type=str, help='Load an already trained model')
+
+    params = parser.parse_args()
+
+
+
 	input_vector_file = sys.argv[1]
 	input_vector_file_format = sys.argv[2] # binary or text
 	
+	nbest = sys.argv[5]
+
 	# load model	
 	model = loadModel(input_vector_file, input_vector_file_format)
 	word_vectors = model.wv # if we only want query the model

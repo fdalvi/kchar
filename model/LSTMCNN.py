@@ -276,6 +276,10 @@ def LSTMCNN(opt):
          x = TimeDistributed(Highway(activation='relu'))(x)
 
     output = x
+    
+    ## feed forward layers
+    for l in range(opt.feedforward_layers):
+         x = Dense(opt.word_vec_size, activation='relu')(x)
 
     for l in range(opt.num_layers):
          x = LSTM(opt.rnn_size, activation='tanh', recurrent_activation='sigmoid', return_sequences=True, stateful=True)(x)
