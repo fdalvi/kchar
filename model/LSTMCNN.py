@@ -224,6 +224,12 @@ def LSTMCNN_print(opt, extract):
 
 	    for l in range(opt.highway_layers):
         	 x = TimeDistributed(Highway(activation='relu'))(x)
+             
+    elif extract == 'feedforward':
+        for l in range(opt.feedforward_layers):
+            x = Dense(opt.word_vec_size, activation='relu')(x)
+    elif extract == 'feedforward1':
+        x = Dense(opt.word_vec_size, activation='relu')(x)
 
     output = x
     model = sModel(inputs=inputs, outputs=output)

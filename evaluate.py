@@ -161,7 +161,7 @@ if __name__ == "__main__":
     parser.add_argument('--init', type=str)
     parser.add_argument('--text', type=str)
     parser.add_argument('--calc', action='store_true', default=False)
-    parser.add_argument('--extract', choices=['embedding', 'highway'])
+    parser.add_argument('--extract', choices=['embedding', 'highway', 'feedforward'. 'feedforward1'])
     args = parser.parse_args()
 
     main(args.model, args.vocabulary, args.init, args.text, args.calc, args.extract)
