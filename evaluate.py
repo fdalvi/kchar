@@ -68,17 +68,19 @@ class Vocabulary:
 
 
 class evaluator:
-    def __init__(self, name, vocabulary, init, extract):
+    def __init__(self, name, vocabulary, init, extract, layer):
         self.opt = pickle.load(open('{}.pkl'.format(name), "rb"))
         self.opt.batch_size = 1
         self.opt.seq_length = 1
         self.reader = Vocabulary(self.opt.tokens, vocabulary, max_word_l=self.opt.max_word_l)
-	if extract:
-	        self.model = LSTMCNN_print(self.opt, extract)
-		self.model.load_weights('{}.h5'.format(name), by_name=True)
-	else:
-		self.model = LSTMCNN(self.opt)
-	        self.model.load_weights('{}.h5'.format(name))
+        if extract:
+            self.model = LSTMCNN_print(self.opt, extract, layer)
+            print self.model.summary()
+            self.model.load_weights('{}.h5'.format(name), by_name=True)
+        else:
+            self.model = LSTMCNN(self.opt)
+            self.model.load_weights('{}.h5'.format(name))
+            print self.model.summary()
         if init:
             self.state_mean = np.load(init)
         else:
@@ -97,17 +99,17 @@ class evaluator:
             self.model.set_states_value(self.state_mean)
         return self.model.predict(x, batch_size=1, verbose=0)
 
-def main(name, vocabulary, init, text, calc, extract, textsize):
+def main(name, vocabulary, init, text, calc, extract, layer):
     
-    ev = evaluator(name, vocabulary, None if calc else init, extract)
+    ev = evaluator(name, vocabulary, None if calc else init, extract, layer)
 
+    outputFile = extract + "_" + str(layer) + "_output"
     if extract:
-        em = codecs.open(extract + '_output', 'w', encoding='utf-8')
-        count = 0
-        emb_size = 0
+        em = codecs.open(outputFile, 'w', encoding='utf-8')
 
     f = codecs.open(text, 'r', encoding)
-    num_lines = sum(1 for line in f)
+    num_lines = sum(len(line.split(" ")) for line in f)
+
     f.seek(0)
     if calc:
         lp = 0;
@@ -131,6 +133,7 @@ def main(name, vocabulary, init, text, calc, extract, textsize):
         nl = 0;
         f.seek(0)
 
+        count = 0
         for line in f:
             if extract:
                 s_arr = []
@@ -138,19 +141,17 @@ def main(name, vocabulary, init, text, calc, extract, textsize):
                 words = line.split(" ")
 
                 s = ev.get_embedding(line)
-                
+
                 if count == 0:
                     emb_size = (s.shape)[2] # embedding size
-                    em.write(str(textsize) + " " + str(emb_size) + "\n")
-                    print "Text size = ", textsize
-                    print "Embedding size = ", emb_size	# writing num of lines and embeddigns size
-                    # to make format of file compatibale with word2vec embeddings
+                    em.write(str(num_lines) + " " + str(emb_size) + "\n")
+
                 for word_idx in range(1, s.shape[0]): # ignoring start of symbol
                     s_arr = map(str, s[word_idx,:,:].flatten().tolist()) # convert numpy array to list and convert float to string
                     # taking the embedding of the first word only in case the input consists of more than one word per line
                     em.write(words[word_idx-1] + " " + " ".join(s_arr) + "\n")
 
-                count = count + len(words) # number of words in the current line
+                count += 1
             else:
                 lprob, nwords = ev.logprob(line)
             	lp += lprob*nwords
@@ -159,7 +160,7 @@ def main(name, vocabulary, init, text, calc, extract, textsize):
             	print "Perplexity = ", exp(lp/nw), "\t(", nl, ")"
     if extract:
         em.close()
-        print "%s file written to the working directory" % (extract + "_output")
+        print "%s file written to the working directory" % (outputFile)
         
     exit(0)
 
@@ -171,7 +172,8 @@ if __name__ == "__main__":
     parser.add_argument('--text', type=str)
     parser.add_argument('--calc', action='store_true', default=False)
     parser.add_argument('--extract', choices=['embedding', 'highway', 'feedforward', 'feedforward1', 'rnn'])
-    parser.add_argument('--textsize', type=int, default=0) # number of text examples. This is to print word2vec format embeddings
+    parser.add_argument('--layer', type=int, default=0) # for rnn, which layer to extract
+
     args = parser.parse_args()
 
-    main(args.model, args.vocabulary, args.init, args.text, args.calc, args.extract, args.textsize)
+    main(args.model, args.vocabulary, args.init, args.text, args.calc, args.extract, args.layer)

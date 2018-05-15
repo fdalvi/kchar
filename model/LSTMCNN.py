@@ -198,7 +198,8 @@ def CNN(seq_length, length, input_size, feature_maps, kernels, x):
     x = Reshape((seq_length, sum(feature_maps)))(x)
     return x
 
-def LSTMCNN_print(opt, extract):
+def LSTMCNN_print(opt, extract, layer):
+
     if opt.use_words:
         word = Input(batch_shape=(opt.batch_size, opt.seq_length), dtype='int32', name='word')
         word_vecs = Embedding(opt.word_vocab_size, opt.word_vec_size, input_length=opt.seq_length)(word)
@@ -228,8 +229,22 @@ def LSTMCNN_print(opt, extract):
     elif extract == 'feedforward':
         for l in range(opt.feedforward_layers):
             x = Dense(opt.word_vec_size, activation='relu')(x)
-    elif extract == 'feedforward1':
-        x = Dense(opt.word_vec_size, activation='relu')(x)
+    #elif extract == 'feedforward1':
+    #    x = Dense(opt.word_vec_size, activation='relu')(x)
+    elif extract == 'rnn':
+        if opt.batch_norm:
+             x = BatchNormalization()(x)
+
+        for l in range(opt.highway_layers):
+             x = TimeDistributed(Highway(activation='relu'))(x)
+
+        for l in range(opt.feedforward_layers):
+            x = Dense(opt.word_vec_size, activation='relu')(x)
+
+        if layer == 0:
+            layer = opt.num_layers
+        for l in range(layer):
+            x = LSTM(opt.rnn_size, activation='tanh', recurrent_activation='sigmoid', return_sequences=True, stateful=True)(x)
 
     output = x
     model = sModel(inputs=inputs, outputs=output)
@@ -273,15 +288,11 @@ def LSTMCNN(opt):
         x = word_vecs
         inputs = word
 
-    output = x
-
     if opt.batch_norm:
          x = BatchNormalization()(x)
 
     for l in range(opt.highway_layers):
          x = TimeDistributed(Highway(activation='relu'))(x)
-
-    output = x
     
     ## feed forward layers
     for l in range(opt.feedforward_layers):
