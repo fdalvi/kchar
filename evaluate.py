@@ -97,13 +97,15 @@ class evaluator:
             self.model.set_states_value(self.state_mean)
         return self.model.predict(x, batch_size=1, verbose=0)
 
-def main(name, vocabulary, init, text, calc, extract):
+def main(name, vocabulary, init, text, calc, extract, textsize):
     
     ev = evaluator(name, vocabulary, None if calc else init, extract)
-    
-    if extract: 
-	em = codecs.open(extract + '_output', 'w', encoding='utf-8')
- 
+
+    if extract:
+        em = codecs.open(extract + '_output', 'w', encoding='utf-8')
+        count = 0
+        emb_size = 0
+
     f = codecs.open(text, 'r', encoding)
     num_lines = sum(1 for line in f)
     f.seek(0)
@@ -128,30 +130,37 @@ def main(name, vocabulary, init, text, calc, extract):
         nw = 0;
         nl = 0;
         f.seek(0)
-	count = 0
-	emb_size = 0
+
         for line in f:
-	    if (extract):
-		assert len(line.split()) == 1, "number of words per line are greater than 1: %s" % line
-		word = line.split()[0]
-            	s = (ev.get_embedding(word))
-		if count == 0:
-			emb_size = (s.shape)[2] # embedding size
-			em.write(str(num_lines) + " " + str(emb_size) + "\n")	# writing num of lines and embeddigns size
-			# to make format of file compatibale with word2vec embeddings
-		s_arr = map(str, s[-1,:,:].flatten().tolist()) # convert numpy array to list and convert float to string
-		# taking the embedding of the first word only in case the input consists of more than one word per line
-		em.write(word + " " + " ".join(s_arr) + "\n")
-		count +=1
-	    else:
-            	lprob, nwords = ev.logprob(line)
+            if extract:
+                s_arr = []
+                line = line.strip()
+                words = line.split(" ")
+
+                s = ev.get_embedding(line)
+                
+                if count == 0:
+                    emb_size = (s.shape)[2] # embedding size
+                    em.write(str(textsize) + " " + str(emb_size) + "\n")
+                    print "Text size = ", textsize
+                    print "Embedding size = ", emb_size	# writing num of lines and embeddigns size
+                    # to make format of file compatibale with word2vec embeddings
+                for word_idx in range(1, s.shape[0]): # ignoring start of symbol
+                    s_arr = map(str, s[word_idx,:,:].flatten().tolist()) # convert numpy array to list and convert float to string
+                    # taking the embedding of the first word only in case the input consists of more than one word per line
+                    em.write(words[word_idx-1] + " " + " ".join(s_arr) + "\n")
+
+                count = count + len(words) # number of words in the current line
+            else:
+                lprob, nwords = ev.logprob(line)
             	lp += lprob*nwords
             	nw += nwords
             	nl += 1
             	print "Perplexity = ", exp(lp/nw), "\t(", nl, ")"
-	if extract:
-		print "%s file written to the working directory" % (extract + "_output")
-        	em.close()
+    if extract:
+        em.close()
+        print "%s file written to the working directory" % (extract + "_output")
+        
     exit(0)
 
 if __name__ == "__main__":
@@ -161,7 +170,8 @@ if __name__ == "__main__":
     parser.add_argument('--init', type=str)
     parser.add_argument('--text', type=str)
     parser.add_argument('--calc', action='store_true', default=False)
-    parser.add_argument('--extract', choices=['embedding', 'highway', 'feedforward', 'feedforward1'])
+    parser.add_argument('--extract', choices=['embedding', 'highway', 'feedforward', 'feedforward1', 'rnn'])
+    parser.add_argument('--textsize', type=int, default=0) # number of text examples. This is to print word2vec format embeddings
     args = parser.parse_args()
 
-    main(args.model, args.vocabulary, args.init, args.text, args.calc, args.extract)
+    main(args.model, args.vocabulary, args.init, args.text, args.calc, args.extract, args.textsize)
