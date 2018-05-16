@@ -7,6 +7,7 @@ from model.LSTMCNN import LSTMCNN
 from model.LSTMCNN import LSTMCNN_print
 from util.BatchLoaderUnk import Tokens, encoding # needed by pickle.load()
 from math import exp
+import os
 
 def vocab_unpack(vocab):
     return vocab['idx2word'], vocab['word2idx'][()], vocab['idx2char'], vocab['char2idx'][()]
@@ -100,10 +101,11 @@ class evaluator:
         return self.model.predict(x, batch_size=1, verbose=0)
 
 def main(name, vocabulary, init, text, calc, extract, layer):
-    
+
     ev = evaluator(name, vocabulary, None if calc else init, extract, layer)
 
-    outputFile = extract + "_" + str(layer) + "_output"
+    outputFile = os.path.basename(text) + "_" + extract + "_" + str(layer) + "_output"
+
     if extract:
         em = codecs.open(outputFile, 'w', encoding='utf-8')
 
