@@ -1,0 +1,44 @@
+{
+	// Word Level Models
+	"word_input": [],
+	"word_embedding": [],
+
+	// Character Level Models
+	"char_input": [],
+	"char_embedding": [],
+	"char_cnn": [],
+
+	// Word + Character Models
+	"word_char_concatenation": [],
+
+	// Batch Norm
+	"batch_norm": [],
+
+	// Highway layers
+	"highway": {
+		"0": []
+		// add as many as opt.highway_layers
+	},
+
+	// Feed forward layers
+	"feedforward": {
+		"0": []
+		// add as many as opt.feedforward_layers
+	},
+
+	// RNN layers
+	"rnn": {
+		"0": {
+			"output": [],
+			"dropout": []
+		},
+		"1": {
+			"output": [],
+			"dropout": []
+		}
+		// add as many as opt.num_layers
+	},
+
+	// Final output
+	"output": []
+}

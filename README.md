@@ -48,6 +48,7 @@ For this later case, we can evaluate the perplexity using a precomputed --init f
 python evaluate.py --model cv/char-large --vocabulary data/ptb/vocab.npz --init init.npy --text data/ptb/test.txt
 ```
 
+### Embeddings extraction
 Print word Embeddings or output of highway layer  using a trained model (this option is implemented without init and calc flag)
 
 test.txt assume one word per line. If there is a sentence, program exits with an error.
@@ -55,6 +56,16 @@ test.txt assume one word per line. If there is a sentence, program exits with an
 python evaluate.py --model cv/char-large --vocabulary data/ptb/vocab.npz --text data/ptb/test.txt --extract embedding
 python evaluate.py --model cv/char-large --vocabulary data/ptb/vocab.npz --text data/ptb/test.txt --extract highway
 ```
+
+### Neuron Masking
+Mask arbitrary neurons in a trained model during a forward pass.
+
+```
+python evaluate_with_mash.py --model cv/char-large --vocabulary data/ptb/vocab.npz --text data/ptb/test.txt --mask data/mask.json
+```
+
+`mask.json` defines the neurons to mask out on a per-layer basis. See [sample_mask.json](sample_mask.json) for an example.
+
 ### Licence
 MIT
 

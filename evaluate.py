@@ -104,9 +104,8 @@ def main(name, vocabulary, init, text, calc, extract, layer):
 
     ev = evaluator(name, vocabulary, None if calc else init, extract, layer)
 
-    outputFile = os.path.basename(text) + "_" + extract + "_" + str(layer) + "_output"
-
     if extract:
+        outputFile = os.path.basename(text) + "_" + extract + "_" + str(layer) + "_output"
         em = codecs.open(outputFile, 'w', encoding='utf-8')
 
     f = codecs.open(text, 'r', encoding)
