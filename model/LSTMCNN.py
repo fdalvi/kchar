@@ -1,9 +1,11 @@
 from math import exp
+import numpy as np
 
 from keras import initializers, regularizers, activations, constraints
 from keras.engine import Layer, InputSpec
 from keras.models import Model, model_from_json
 from keras.layers import Input, Embedding, TimeDistributed, Dense, Dropout, Reshape, Concatenate, LSTM, Conv2D, MaxPooling2D, BatchNormalization
+from keras.layers import Lambda, multiply
 from keras.optimizers import SGD
 from keras import backend as K
 
@@ -304,6 +306,117 @@ def LSTMCNN(opt):
          if opt.dropout > 0:
              x = Dropout(opt.dropout)(x)
     
+
+    output = TimeDistributed(Dense(opt.word_vocab_size, activation='softmax'))(x)
+
+    model = sModel(inputs=inputs, outputs=output)
+    model.summary()
+
+    optimizer = sSGD(lr=opt.learning_rate, clipnorm=opt.max_grad_norm, scale=float(opt.seq_length))
+    model.compile(loss='sparse_categorical_crossentropy', optimizer=optimizer)
+
+    return model
+
+def mask_out(X, mask_elements, seq_length, vec_length, batch_size=1):
+    mask = np.ones((batch_size, seq_length, vec_length))
+    mask[:, :, mask_elements] = 0
+    return K.constant(mask)
+
+def create_masking_layer(X, mask, seq_length, vec_length, batch_size):
+    multiplier = Lambda(mask_out, arguments={
+        'mask_elements': mask,
+        'seq_length': seq_length,
+        'vec_length': vec_length,
+        'batch_size': batch_size
+    })(X)
+    return multiply([X, multiplier])
+
+def LSTMCNN_with_mask(opt, mask):
+    # opt.seq_length = number of time steps (words) in each batch
+    # opt.rnn_size = dimensionality of hidden layers
+    # opt.num_layers = number of layers
+    # opt.dropout = dropout probability
+    # opt.word_vocab_size = num words in the vocab
+    # opt.word_vec_size = dimensionality of word embeddings
+    # opt.char_vocab_size = num chars in the character vocab
+    # opt.char_vec_size = dimensionality of char embeddings
+    # opt.feature_maps = table of feature map sizes for each kernel width
+    # opt.kernels = table of kernel widths
+    # opt.length = max length of a word
+    # opt.use_words = 1 if use word embeddings, otherwise not
+    # opt.use_chars = 1 if use char embeddings, otherwise not
+    # opt.highway_layers = number of highway layers to use, if any
+    # opt.batch_size = number of sequences in each batch
+
+    # TODO: Char Embedding
+    # TODO: Char CNN
+    # TODO: Char CNN+Word concat
+    # TODO: BatchNorm
+    # TODO: Highway
+    # TODO: Output
+
+    if opt.use_words:
+        word = Input(batch_shape=(opt.batch_size, opt.seq_length), dtype='int32', name='word')
+        word_vecs = Embedding(opt.word_vocab_size, opt.word_vec_size, input_length=opt.seq_length)(word)
+        if 'word_embedding' in mask:
+            word_vecs = create_masking_layer(word_vecs,
+                mask['word_embedding'],
+                opt.seq_length,
+                opt.word_vec_size,
+                opt.batch_size
+            )
+    if opt.use_chars:
+        chars = Input(batch_shape=(opt.batch_size, opt.seq_length, opt.max_word_l), dtype='int32', name='chars')
+        chars_embedding = TimeDistributed(Embedding(opt.char_vocab_size, opt.char_vec_size, name='chars_embedding'))(chars)
+
+        cnn = CNN(opt.seq_length, opt.max_word_l, opt.char_vec_size, opt.feature_maps, opt.kernels, chars_embedding)
+        if opt.use_words:
+            x = Concatenate()([cnn, word_vecs])
+            inputs = [chars, word]
+        else:
+            x = cnn
+            inputs = chars
+    else:
+        x = word_vecs
+        inputs = word
+
+    if opt.batch_norm:
+        x = BatchNormalization()(x)
+
+    for l in range(opt.highway_layers):
+        x = TimeDistributed(Highway(activation='relu'))(x)
+
+    ## feed forward layers
+    for l in range(opt.feedforward_layers):
+        x = Dense(opt.word_vec_size, activation='relu')(x)
+        if 'feedforward' in mask and str(l) in mask['feedforward']:
+            x = create_masking_layer(x,
+                mask['feedforward'][str(l)],
+                opt.seq_length,
+                opt.word_vec_size,
+                opt.batch_size
+            )
+
+    ## rnn layers
+    for l in range(opt.num_layers):
+        x = LSTM(opt.rnn_size, activation='tanh', recurrent_activation='sigmoid', return_sequences=True, stateful=True)(x)
+        if 'rnn' in mask and str(l) in mask['rnn'] and 'output' in mask['rnn'][str(l)]:
+            x = create_masking_layer(x,
+                mask['rnn'][str(l)]['output'],
+                opt.seq_length,
+                opt.rnn_size,
+                opt.batch_size
+            )
+
+        if opt.dropout > 0:
+            x = Dropout(opt.dropout)(x)
+            if 'rnn' in mask and str(l) in mask['rnn'] and 'dropout' in mask['rnn'][str(l)]:
+                x = create_masking_layer(x,
+                    mask['rnn'][str(l)]['dropout'],
+                    opt.seq_length,
+                    opt.rnn_size,
+                    opt.batch_size
+                )
 
     output = TimeDistributed(Dense(opt.word_vocab_size, activation='softmax'))(x)
 
